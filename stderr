@@ -1,0 +1,64 @@
+[32m2026-10-03 10:50:16.963[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 10:53:27.697[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 10:55:47.807[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 11:04:51.969[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 20:14:12.107[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 20:16:44.722[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 20:18:51.889[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m
+[32m2026-10-03 23:12:50.735[0m | [31m[1mERROR   [0m | [36mapp.main[0m:[36mvalidation_exception_handler[0m:[36m54[0m - [31m[1mValidation error: 4 validation errors:
+  {'type': 'string_too_short', 'loc': ('body', 'title'), 'msg': 'String should have at least 1 character', 'input': '', 'ctx': {'min_length': 1}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'status'), 'msg': "String should match pattern '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(OPEN|UNDER_REVIEW|CLOSED|ARCHIVED)$'}}
+  {'type': 'string_pattern_mismatch', 'loc': ('body', 'priority'), 'msg': "String should match pattern '^(LOW|MEDIUM|HIGH|CRITICAL)$'", 'input': 'INVALID', 'ctx': {'pattern': '^(LOW|MEDIUM|HIGH|CRITICAL)$'}}
+  {'type': 'string_too_short', 'loc': ('body', 'case_number'), 'msg': 'String should have at least 3 characters', 'input': 'A', 'ctx': {'min_length': 3}}
+
+  File "C:\Users\shrey\OneDrive\Desktop\DigitalEvidenceIntegrity\backend\app\api\routes\cases.py", line 13, in create_case
+    POST /api/cases[0m

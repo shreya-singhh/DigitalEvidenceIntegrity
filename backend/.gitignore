@@ -1,0 +1,10 @@
+# Backend gitignore
+__pycache__/
+*.pyc
+.env
+.pytest_cache/
+logs/
+uploads/
+reports/
+.venv/
+venv/

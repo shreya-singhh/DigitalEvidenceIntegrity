@@ -1,0 +1,11 @@
+# Root gitignore
+node_modules/
+venv/
+.env
+.env.local
+*.pyc
+__pycache__/
+dist/
+build/
+.DS_Store
+.vscode/

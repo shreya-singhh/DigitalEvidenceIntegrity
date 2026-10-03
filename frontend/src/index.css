@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 34% 8%;
+    --foreground: 210 25% 94%;
+    --card: 222 30% 12%;
+    --card-foreground: 210 25% 94%;
+    --popover: 222 32% 11%;
+    --popover-foreground: 210 25% 94%;
+    --primary: 212 90% 65%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 220 24% 18%;
+    --secondary-foreground: 210 24% 90%;
+    --muted: 220 22% 16%;
+    --muted-foreground: 215 16% 68%;
+    --accent: 218 32% 20%;
+    --accent-foreground: 212 90% 78%;
+    --destructive: 350 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 24% 23%;
+    --input: 215 24% 23%;
+    --ring: 212 90% 65%;
+    --radius: 0.7rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image: radial-gradient(1000px 500px at 50% -15%, rgba(59, 130, 246, 0.12), transparent 60%);
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+
+  ::selection {
+    background: rgba(59, 130, 246, 0.3);
+    color: #eff6ff;
+  }
+}
+
+@layer components {
+  .command-grid {
+    background-color: transparent;
+  }
+
+  .glass-panel {
+    @apply relative overflow-hidden rounded-xl border border-white/10 bg-[#111a2b]/90 shadow-panel backdrop-blur-xl;
+  }
+
+  .glass-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 35%);
+  }
+
+  .hash-chip {
+    @apply font-mono text-[11px] tracking-[0.14em] text-ice/90;
+  }
+
+  .forensic-nav {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .forensic-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
