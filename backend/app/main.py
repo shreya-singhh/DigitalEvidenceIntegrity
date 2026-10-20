@@ -6,6 +6,7 @@ from loguru import logger
 
 from app.api.router import api_router
 from app.core.config import settings
+from app.core.diagnostics import safe_exception_diagnostics
 from app.core.logging import configure_logging
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.database.init_db import init_db
@@ -64,7 +65,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    logger.exception("Unhandled exception occurred")
+    route = request.scope.get("route")
+    route_path = getattr(route, "path", request.url.path)
+    logger.error(
+        "Unhandled request exception; method={method} route={route} diagnostics={diagnostics}",
+        method=request.method,
+        route=route_path,
+        diagnostics=safe_exception_diagnostics(exc),
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Internal server error"},

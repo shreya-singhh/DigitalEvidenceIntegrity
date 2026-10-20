@@ -1,12 +1,14 @@
 import re
 from contextlib import contextmanager
 from datetime import datetime, timedelta
+from io import StringIO
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
 from app.api.routes import auth as auth_routes
 from app.core.config import settings
+from app.core.logging import logger
 from app.database.session import get_db
 from app.main import app
 from app.models.audit_log import AuditLog
@@ -223,12 +225,23 @@ def test_email_otp_invalidates_challenge_when_mail_delivery_fails(monkeypatch):
     monkeypatch.setattr(settings, "smtp_from_email", "no-reply@example.com")
 
     def fail_delivery(**_message):
-        raise auth_routes.smtplib.SMTPException("provider failure")
+        raise auth_routes.smtplib.SMTPAuthenticationError(
+            535,
+            b"authentication failed; never-log-this-provider-response",
+        )
 
     monkeypatch.setattr(auth_routes, "send_email", fail_delivery)
-    sent = client.post("/api/auth/email-otp/send", json={"email": account["email"]})
+    output = StringIO()
+    sink_id = logger.add(output, format="{message}", level="ERROR", enqueue=False)
+    try:
+        sent = client.post("/api/auth/email-otp/send", json={"email": account["email"]})
+    finally:
+        logger.remove(sink_id)
 
     assert sent.status_code == 503
+    assert "SMTPAuthenticationError" in output.getvalue()
+    assert "535" in output.getvalue()
+    assert "never-log-this-provider-response" not in output.getvalue()
     with db_session() as db:
         challenge = db.query(EmailOtpChallenge).filter_by(email=account["email"]).one()
         assert challenge.consumed_at is not None

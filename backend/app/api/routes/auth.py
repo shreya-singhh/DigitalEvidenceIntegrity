@@ -21,6 +21,7 @@ from app.auth.providers import (
 from app.auth.rate_limit import enforce_rate_limit
 from app.auth.security import get_current_user
 from app.core.config import settings
+from app.core.diagnostics import safe_exception_diagnostics
 from app.core.logging import logger
 from app.database.session import get_db
 from app.models.auth_challenge import AuthChallenge
@@ -207,7 +208,10 @@ def send_email_otp(
     except (OSError, smtplib.SMTPException) as exc:
         challenge.consumed_at = datetime.utcnow()
         db.commit()
-        logger.error("Email OTP could not be accepted by the configured mail provider")
+        logger.error(
+            "Email OTP delivery failed; diagnostics={diagnostics}",
+            diagnostics=safe_exception_diagnostics(exc),
+        )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Email OTP could not be sent. Please try again later.",
@@ -463,7 +467,10 @@ def request_password_reset(
                 {AuthChallenge.used_at: datetime.utcnow()}
             )
             db.commit()
-            logger.error("Password recovery email could not be accepted by the configured mail provider")
+            logger.error(
+                "Password recovery email delivery failed; diagnostics={diagnostics}",
+                diagnostics=safe_exception_diagnostics(exc),
+            )
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Password recovery email could not be sent. Please try again later.",
@@ -549,7 +556,10 @@ def request_email_verification(
             {AuthChallenge.used_at: datetime.utcnow()}
         )
         db.commit()
-        logger.error("Email verification could not be accepted by the configured mail provider")
+        logger.error(
+            "Email verification delivery failed; diagnostics={diagnostics}",
+            diagnostics=safe_exception_diagnostics(exc),
+        )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Verification email could not be sent. Please try again later.",
