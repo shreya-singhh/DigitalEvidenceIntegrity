@@ -19,7 +19,7 @@ Production deployments should keep the database credentials in environment varia
 
 ## Render authentication configuration
 
-Run the backend as a Render web service with the repository's `backend/Dockerfile`. Configure `DATABASE_URL`, `SECRET_KEY`, and `CORS_ORIGINS` in the Render environment settings. Set `CORS_ORIGINS` to the exact HTTPS origin of the deployed frontend (comma-separated only when using multiple trusted origins), and set `PUBLIC_APP_URL` to that frontend origin. Do not set `CORS_ORIGINS=*` for production.
+Run the backend as a Render web service with the repository's `backend/Dockerfile`. Configure `DATABASE_URL`, `SECRET_KEY`, and `CORS_ORIGINS` in the Render environment settings. Set `CORS_ORIGINS` to `https://digital-evidence-frontend.onrender.com` (comma-separated with other trusted origins only when needed), and set `PUBLIC_APP_URL` to that frontend origin. `CORS_ORIGINS` overrides the backend's safe defaults, so an incorrect value can block browser requests even when the API endpoint itself returns HTTP 200. Do not set `CORS_ORIGINS=*` for production.
 
 Apply schema changes from the backend working directory before deploying the new code:
 
@@ -31,7 +31,7 @@ Authentication providers are optional but remain unavailable until configured:
 
 - Google Identity Services: set `GOOGLE_CLIENT_ID` on the backend Render service to the OAuth **Web application** client ID. This is the backend's expected ID-token audience and is returned by `/api/auth/options` for the frontend Google button; no separate frontend client-ID variable is needed. The ID is public and is not a client secret.
 - In Google Cloud Console, open **APIs & Services → Credentials**, edit that same OAuth web client, and add `https://digital-evidence-frontend.onrender.com` under **Authorized JavaScript origins**. The current frontend flow uses the Google Identity Services popup callback and posts its ID token to the existing backend endpoint, so it does not require an authorized redirect URI. Do not add a client secret to the frontend or repository.
-- After setting `GOOGLE_CLIENT_ID`, save the backend Render environment so the service restarts. Redeploy/rebuild the frontend when deploying frontend code changes; it reads the client ID at runtime from `/api/auth/options`.
+- After setting `GOOGLE_CLIENT_ID` or correcting `CORS_ORIGINS`, save the backend Render environment so the service restarts. Redeploy/rebuild the frontend when deploying frontend code changes; it reads the client ID at runtime from `/api/auth/options`.
 - The backend verifies the token signature, expiry, audience, and issuer before using its claims. Keep `CORS_ORIGINS` set to `https://digital-evidence-frontend.onrender.com` so the browser can reach the API.
 - In the Render frontend service, set the build environment variable `VITE_API_BASE_URL` to `https://digitalevidenceintegrity.onrender.com/api`. Do not set a second Google client ID on the frontend; `/api/auth/options` provides the same public ID the backend validates as its audience.
 - Password recovery and email verification: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `SMTP_USE_TLS` to the transactional email service credentials.

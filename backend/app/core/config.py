@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 # Project root
 PROJECT_ROOT = BASE_DIR.parent
+DEPLOYED_FRONTEND_ORIGIN = "https://digital-evidence-frontend.onrender.com"
 
 
 class Settings(BaseSettings):
@@ -52,7 +53,10 @@ class Settings(BaseSettings):
     )
 
     cors_origins: List[str] = Field(
-        default=["http://localhost:5173"],
+        default=[
+            "http://localhost:5173",
+            "https://digital-evidence-frontend.onrender.com",
+        ],
         validation_alias="CORS_ORIGINS",
     )
     google_client_id: str | None = Field(default=None, validation_alias="GOOGLE_CLIENT_ID")
@@ -73,13 +77,17 @@ class Settings(BaseSettings):
             if value == "*":
                 return ["*"]
 
-            return [
+            origins = [
                 origin.strip()
                 for origin in value.split(",")
                 if origin.strip()
             ]
+        else:
+            origins = list(value)
 
-        return value
+        if DEPLOYED_FRONTEND_ORIGIN not in origins:
+            origins.append(DEPLOYED_FRONTEND_ORIGIN)
+        return origins
 
     @field_validator("google_client_id", mode="before")
     @classmethod

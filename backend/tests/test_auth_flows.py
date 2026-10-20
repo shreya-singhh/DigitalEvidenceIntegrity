@@ -4,11 +4,13 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
 
 from app.auth import providers
 from app.api.routes import auth as auth_routes
-from app.core.config import settings
+from app.core.config import DEPLOYED_FRONTEND_ORIGIN, Settings, settings
 from app.database.session import get_db
 from app.main import app
 from app.models.auth_challenge import AuthChallenge
@@ -213,6 +215,54 @@ def test_auth_options_preserve_google_and_omit_phone_settings(monkeypatch):
     assert response.json()["google_enabled"] is True
     assert response.json()["google_client_id"] == client_id
     assert not {"phone_enabled", "phone_password_reset_enabled", "sms_alerts_enabled"} & response.json().keys()
+
+
+def test_auth_options_are_safe_when_google_is_not_configured(monkeypatch):
+    monkeypatch.setattr(settings, "google_client_id", None)
+
+    response = client.get("/api/auth/options")
+
+    assert response.status_code == 200
+    assert response.json()["google_enabled"] is False
+    assert response.json()["google_client_id"] is None
+
+
+def test_auth_options_cors_allows_deployed_frontend_and_rejects_unknown_origin():
+    configured = Settings(
+        _env_file=None,
+        DATABASE_URL="sqlite://",
+        SECRET_KEY="test-secret",
+        CORS_ORIGINS="https://staging.example",
+    )
+    cors_app = FastAPI()
+    cors_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=configured.cors_origins,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    cors_app.include_router(auth_routes.router, prefix="/api")
+    cors_client = TestClient(cors_app)
+
+    allowed = cors_client.options("/api/auth/options", headers={
+        "Origin": DEPLOYED_FRONTEND_ORIGIN,
+        "Access-Control-Request-Method": "GET",
+    })
+
+    assert allowed.status_code == 200
+    assert allowed.headers["access-control-allow-origin"] == DEPLOYED_FRONTEND_ORIGIN
+
+    denied = cors_client.options(
+        "/api/auth/options",
+        headers={
+            "Origin": "https://untrusted.example",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert denied.status_code == 400
+    assert "access-control-allow-origin" not in denied.headers
 
 
 def test_phone_auth_and_sms_alert_routes_are_removed():

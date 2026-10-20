@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react"
+import axios from "axios"
 import { Link, Navigate, useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { Eye, EyeOff, Fingerprint, ShieldCheck } from "lucide-react"
@@ -44,13 +45,20 @@ export default function LoginPage() {
   const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false)
   const [options, setOptions] = useState<AuthOptions | null>(null)
   const [googleReady, setGoogleReady] = useState(false)
-  const [googleOptionsError, setGoogleOptionsError] = useState(false)
+  const [googleOptionsError, setGoogleOptionsError] = useState<string | null>(null)
   const [googleError, setGoogleError] = useState<string | null>(null)
 
   useEffect(() => {
     authApi.options()
       .then(({ data }) => setOptions(data))
-      .catch(() => setGoogleOptionsError(true))
+      .catch((error: unknown) => {
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined
+        setGoogleOptionsError(
+          status
+            ? `Authentication settings request failed (HTTP ${status}). Please refresh or use username and password.`
+            : "Cannot reach the authentication API. Check VITE_API_BASE_URL and the backend CORS_ORIGINS setting.",
+        )
+      })
   }, [])
 
   useEffect(() => {
@@ -238,7 +246,7 @@ export default function LoginPage() {
         )}
         {googleOptionsError && (
           <p className="mt-5 text-center text-xs text-amber-300" role="status">
-            Sign-in options could not be loaded. Please refresh the page or use username and password.
+            {googleOptionsError}
           </p>
         )}
         {options && !options.google_enabled && (
