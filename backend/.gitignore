@@ -16,11 +16,28 @@ venv/
 logs/
 *.log
 backend/stderr
+firebase-debug.log
 
 # Local evidence uploads and generated reports
 uploads/
 reports/
+backend/uploads/
+backend/reports/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
 
 # Frontend dependencies and build output
 node_modules/
 dist/
+frontend/node_modules/
+frontend/dist/
+
+# Python virtual environments
+.venv/
+venv/
+
+# Debug logs
+firebase-debug.log

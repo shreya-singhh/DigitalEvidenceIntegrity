@@ -1,12 +1,33 @@
 # Root gitignore
+# Dependencies and virtual environments
 node_modules/
+.venv/
 venv/
+
+# Local environment settings; keep committed templates
 .env
-.env.local
+.env.*
+!.env.example
+
+# Python caches
 *.pyc
 __pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build outputs
 dist/
 build/
+coverage/
+
+# Generated logs
+*.log
+logs/
+backend/stderr
+firebase-debug.log
+
+# Local editor and operating-system files
 .DS_Store
 .vscode/
 frontend/.env.production
