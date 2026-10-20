@@ -15,6 +15,19 @@ from app.database.readiness import database_readiness_response
 
 configure_logging()
 
+
+def _cors_error_headers(request: Request) -> dict[str, str]:
+    origin = request.headers.get("origin")
+    allowed_origins = [item.strip() for item in settings.cors_origins]
+    if not origin or (origin not in allowed_origins and "*" not in allowed_origins):
+        return {}
+
+    return {
+        "Access-Control-Allow-Origin": "*" if "*" in allowed_origins else origin,
+        "Vary": "Origin",
+    }
+
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -83,7 +96,10 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error"},
+        content={
+            "detail": "The server could not complete this request. Please try again later."
+        },
+        headers=_cors_error_headers(request),
     )
 
 

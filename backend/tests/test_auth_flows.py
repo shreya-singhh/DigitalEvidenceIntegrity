@@ -7,8 +7,9 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import StaticPool
 from starlette.requests import Request
 
-from app.core.config import DEPLOYED_FRONTEND_ORIGIN, Settings
+from app.core.config import DEPLOYED_FRONTEND_ORIGIN, Settings, settings
 from app.database.base import Base
+from app.database.session import get_db
 from app.main import app, database_unavailable_exception_handler
 
 client = TestClient(app)
@@ -97,6 +98,36 @@ def test_database_operational_errors_return_safe_retryable_response():
     assert response.status_code == 503
     assert response.headers["retry-after"] == "5"
     assert b"must-not-leak" not in response.body
+
+
+def test_unhandled_login_error_returns_safe_response_with_frontend_cors(monkeypatch):
+    def fail_database():
+        raise RuntimeError("database details must not reach the client")
+
+    original_override = app.dependency_overrides[get_db]
+    original_middleware_stack = app.middleware_stack
+    monkeypatch.setattr(app, "debug", False)
+    monkeypatch.setattr(app, "middleware_stack", None)
+    monkeypatch.setattr(settings, "cors_origins", [DEPLOYED_FRONTEND_ORIGIN])
+    app.dependency_overrides[get_db] = fail_database
+    try:
+        response = TestClient(app, raise_server_exceptions=False).post(
+            "/api/auth/login",
+            headers={"Origin": DEPLOYED_FRONTEND_ORIGIN},
+            json={"username": "diagnostic-user", "password": "diagnostic-password"},
+        )
+    finally:
+        app.dependency_overrides[get_db] = original_override
+        app.middleware_stack = original_middleware_stack
+
+    assert response.status_code == 500
+    assert response.headers["access-control-allow-origin"] in {
+        DEPLOYED_FRONTEND_ORIGIN,
+        "*",
+    }
+    assert "server could not complete" in response.json()["detail"].lower()
+    assert "database details" not in response.text
+    assert "diagnostic-password" not in response.text
 
 
 def test_ready_endpoint_requires_user_profile_schema(monkeypatch):
