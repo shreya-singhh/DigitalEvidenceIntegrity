@@ -14,6 +14,7 @@ import { extractApiError } from "@/lib/utils"
 type AuthOptions = {
   google_enabled: boolean
   google_client_id: string | null
+  email_delivery_enabled: boolean
 }
 
 declare global {
@@ -34,7 +35,7 @@ declare global {
 }
 
 export default function LoginPage() {
-  const { user, login, loginWithGoogle } = useAuth()
+  const { user, login, loginWithEmailOtp, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const googleButton = useRef<HTMLDivElement>(null)
   const [identity, setIdentity] = useState("")
@@ -42,6 +43,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<"password" | "emailOtp">("password")
+  const [otpEmail, setOtpEmail] = useState("")
+  const [otpCode, setOtpCode] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [otpError, setOtpError] = useState<string | null>(null)
   const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false)
   const [options, setOptions] = useState<AuthOptions | null>(null)
   const [googleReady, setGoogleReady] = useState(false)
@@ -60,6 +67,15 @@ export default function LoginPage() {
         )
       })
   }, [])
+
+  useEffect(() => {
+    if (resendCooldown === 0) return
+    const timer = window.setTimeout(
+      () => setResendCooldown((remaining) => Math.max(0, remaining - 1)),
+      1000,
+    )
+    return () => window.clearTimeout(timer)
+  }, [resendCooldown])
 
   useEffect(() => {
     const googleClientId = options?.google_client_id
@@ -131,6 +147,14 @@ export default function LoginPage() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
+    if (loginMethod === "emailOtp") {
+      if (!otpSent) {
+        await onSendOtp()
+      } else if (otpCode.length === 6) {
+        await onVerifyOtp()
+      }
+      return
+    }
     setBusy(true)
     try {
       await login(identity.trim(), password, remember)
@@ -138,6 +162,46 @@ export default function LoginPage() {
       navigate("/dashboard")
     } catch (error) {
       toast.error(extractApiError(error))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onSendOtp() {
+    const email = otpEmail.trim().toLowerCase()
+    if (!email) {
+      setOtpError("Enter your email address.")
+      return
+    }
+    setBusy(true)
+    setOtpError(null)
+    try {
+      const { data } = await authApi.sendEmailOtp(email)
+      setOtpEmail(email)
+      setOtpSent(true)
+      setOtpCode("")
+      setResendCooldown(60)
+      toast.success(data.message)
+    } catch (error) {
+      const message = extractApiError(error)
+      setOtpError(message)
+      toast.error(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onVerifyOtp() {
+    setBusy(true)
+    setOtpError(null)
+    try {
+      await loginWithEmailOtp(otpEmail.trim().toLowerCase(), otpCode, remember)
+      toast.success("Signed in securely")
+      navigate("/dashboard")
+    } catch (error) {
+      const message = extractApiError(error)
+      setOtpError(message)
+      toast.error(message)
     } finally {
       setBusy(false)
     }
@@ -159,17 +223,28 @@ export default function LoginPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Welcome back</h1>
         <p className="mt-2 text-sm text-slate-400">Authenticate to access your evidence workspace.</p>
 
-        <div className="mt-7 rounded-lg border border-white/10 bg-black/20 p-1" role="tablist" aria-label="Sign-in method">
+        <div className="mt-7 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/20 p-1" role="tablist" aria-label="Sign-in method">
           <button
             type="button"
             role="tab"
-            aria-selected="true"
-            className="w-full rounded-md bg-ice/15 px-3 py-2 text-sm text-ice"
+            aria-selected={loginMethod === "password"}
+            onClick={() => setLoginMethod("password")}
+            className={`rounded-md px-3 py-2 text-sm ${loginMethod === "password" ? "bg-ice/15 text-ice" : "text-slate-400 hover:text-white"}`}
           >
-            Secure Access
+            Password
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={loginMethod === "emailOtp"}
+            onClick={() => setLoginMethod("emailOtp")}
+            className={`rounded-md px-3 py-2 text-sm ${loginMethod === "emailOtp" ? "bg-ice/15 text-ice" : "text-slate-400 hover:text-white"}`}
+          >
+            Continue with Email OTP
           </button>
         </div>
 
+        {loginMethod === "password" ? (
         <div className="mt-6 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="identity">Username or email</Label>
@@ -223,6 +298,83 @@ export default function LoginPage() {
             {busy ? "Please wait…" : "Sign in"}
           </Button>
         </div>
+        ) : (
+          <div className="mt-6 space-y-4">
+            {!options?.email_delivery_enabled && (
+              <p className="text-sm text-amber-300" role="status">
+                Email OTP is unavailable until the backend email provider is configured.
+              </p>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="otp-email">Email address</Label>
+              <Input
+                id="otp-email"
+                type="email"
+                autoComplete="email"
+                value={otpEmail}
+                onChange={(event) => setOtpEmail(event.target.value)}
+                placeholder="Enter your registered email"
+                required
+              />
+            </div>
+            {!otpSent ? (
+              <Button
+                type="button"
+                className="w-full"
+                disabled={busy || options?.email_delivery_enabled !== true}
+                onClick={() => void onSendOtp()}
+              >
+                {busy ? "Sending code…" : "Send OTP"}
+              </Button>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="otp-code">Six-digit email code</Label>
+                  <Input
+                    id="otp-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    required
+                  />
+                </div>
+                <Button
+                  type="button"
+                  className="w-full"
+                  disabled={busy || otpCode.length !== 6}
+                  onClick={() => void onVerifyOtp()}
+                >
+                  {busy ? "Verifying…" : "Verify OTP"}
+                </Button>
+                <button
+                  type="button"
+                  className="w-full text-sm text-ice disabled:text-slate-500"
+                  disabled={busy || resendCooldown > 0}
+                  onClick={() => void onSendOtp()}
+                >
+                  {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend OTP"}
+                </button>
+              </>
+            )}
+            {otpError && <p className="text-sm text-amber-300" role="alert">{otpError}</p>}
+            {otpSent && <p className="text-xs text-slate-400" role="status">If the address is eligible, a code was sent. Codes expire in five minutes.</p>}
+            <button
+              type="button"
+              className="w-full text-sm text-slate-400 hover:text-ice"
+              onClick={() => {
+                setLoginMethod("password")
+                setOtpError(null)
+              }}
+            >
+              Return to password login
+            </button>
+          </div>
+        )}
 
         {options?.google_enabled && (
           <div className="mt-6">

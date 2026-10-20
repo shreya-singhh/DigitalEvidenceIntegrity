@@ -8,6 +8,17 @@ Document API endpoints, request shapes, and response shapes.
 
 Protected routes require the existing JWT bearer token. Google sign-in continues to use the same authentication flow and receives the same case permissions as other authenticated users.
 
+### Email OTP sign-in
+
+Email OTP uses existing registered DEIS accounts and the normal JWT session:
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/auth/email-otp/send` | Send a six-digit, five-minute code to an email address; always returns a generic eligibility message |
+| `POST` | `/api/auth/email-otp/verify` | Verify `{"email":"user@example.com","code":"123456"}` and return the regular bearer token |
+
+Configure SMTP on the backend before using these routes. Codes are HMAC-hashed at rest, expire after five minutes, are single-use, and permit at most five guesses. Sending is limited by IP and email with a 60-second resend cooldown. Unknown addresses receive the same send response but cannot sign in. A successful code verifies the email on an existing active account whose terms were accepted; OTP never creates accounts or changes roles.
+
 ## Case access
 
 Cases are visible to their creator and to active registered users with a case-level grant. A case creator can manage grants using the recipient's registered email:

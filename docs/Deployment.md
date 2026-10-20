@@ -35,8 +35,17 @@ Authentication providers are optional but remain unavailable until configured:
 - The backend verifies the token signature, expiry, audience, and issuer before using its claims. Keep `CORS_ORIGINS` set to `https://digital-evidence-frontend.onrender.com` so the browser can reach the API.
 - In the Render frontend service, set the build environment variable `VITE_API_BASE_URL` to `https://digitalevidenceintegrity.onrender.com/api`. Do not set a second Google client ID on the frontend; `/api/auth/options` provides the same public ID the backend validates as its audience.
 - Password recovery and email verification: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `SMTP_USE_TLS` to the transactional email service credentials.
+- Email OTP uses the same SMTP configuration and authenticates existing active users only. It does not create accounts. Set all SMTP values on the backend Render service; never add SMTP credentials to frontend variables.
 
-Unset providers are not simulated: Google sign-in stays unavailable, and email recovery/verification endpoints return a setup error. Store provider credentials only in Render environment settings. The browser receives only the public Google client ID through `/api/auth/options`.
+Unset providers are not simulated: Google sign-in stays unavailable, and email OTP/recovery/verification endpoints return a setup error. Store provider credentials only in Render environment settings. The browser receives only the public Google client ID and email-delivery-enabled status through `/api/auth/options`.
+
+Email OTP adds the `email_otp_challenges` table. Apply the Alembic migration before deploying code that uses OTP:
+
+```powershell
+alembic upgrade head
+```
+
+Keep the existing Render database and environment values. Deploy the backend migration first, then the backend application; redeploy the frontend to publish the Email OTP login interface.
 
 The backend also persists authentication rate-limit counters in PostgreSQL: password/Google sign-in is limited per client IP, and registration and recovery requests have per-IP limits. Ensure Render's trusted proxy configuration is restricted so client IP-based limits cannot be spoofed through untrusted forwarded headers.
 

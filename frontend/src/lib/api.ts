@@ -61,6 +61,10 @@ export const authApi = {
     google_client_id: string | null
     email_delivery_enabled: boolean
   }>("/auth/options"),
+  sendEmailOtp: (email: string) =>
+    api.post<{ message: string }>("/auth/email-otp/send", { email }),
+  verifyEmailOtp: (email: string, code: string) =>
+    api.post<Token>("/auth/email-otp/verify", { email, code }),
   googleLogin: (credential: string, terms_accepted: boolean) =>
     api.post<Token>("/auth/google", { credential, terms_accepted }),
   requestPasswordReset: (email: string) =>

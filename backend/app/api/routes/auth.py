@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import re
 import secrets
 import smtplib
@@ -23,9 +24,12 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.database.session import get_db
 from app.models.auth_challenge import AuthChallenge
+from app.models.email_otp_challenge import EmailOtpChallenge
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.schemas.auth import (
+    EmailOtpSendRequest,
+    EmailOtpVerifyRequest,
     GoogleSignInRequest,
     PasswordResetConfirm,
     PasswordResetRequest,
@@ -35,6 +39,8 @@ from app.schemas.user import Token, UserCreate, UserLogin, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 GENERIC_RESET_MESSAGE = "If an account matches that address, password reset instructions will be sent."
+GENERIC_EMAIL_OTP_MESSAGE = "If this address is eligible, a one-time code has been sent."
+EMAIL_OTP_MAX_ATTEMPTS = 5
 
 
 def _client_ip(request: Request) -> str:
@@ -121,6 +127,11 @@ def _send_challenge_email(user: User, purpose: str, token: str) -> None:
     )
 
 
+def _email_otp_hash(email: str, salt: str, code: str) -> str:
+    message = f"email-otp:{email}:{salt}:{code}".encode("utf-8")
+    return hmac.new(settings.secret_key.encode("utf-8"), message, hashlib.sha256).hexdigest()
+
+
 @router.get("/options")
 def auth_options() -> dict[str, bool | str | None]:
     return {
@@ -128,6 +139,154 @@ def auth_options() -> dict[str, bool | str | None]:
         "google_client_id": settings.google_client_id if settings.google_sign_in_enabled else None,
         "email_delivery_enabled": settings.email_delivery_enabled,
     }
+
+
+@router.post("/email-otp/send")
+def send_email_otp(
+    payload: EmailOtpSendRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    if not settings.email_delivery_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email OTP is not configured. Configure SMTP settings on the backend.",
+        )
+
+    email = payload.email
+    enforce_rate_limit(
+        db,
+        action="email_otp_send_ip",
+        key=_client_ip(request),
+        limit=10,
+        window_seconds=3600,
+    )
+    enforce_rate_limit(
+        db,
+        action="email_otp_send_cooldown",
+        key=email,
+        limit=1,
+        window_seconds=60,
+    )
+    enforce_rate_limit(
+        db,
+        action="email_otp_send_email",
+        key=email,
+        limit=5,
+        window_seconds=3600,
+    )
+
+    now = datetime.utcnow()
+    db.query(EmailOtpChallenge).filter(
+        EmailOtpChallenge.expires_at < now - timedelta(days=1),
+    ).delete(synchronize_session=False)
+    db.query(EmailOtpChallenge).filter(
+        EmailOtpChallenge.email == email,
+        EmailOtpChallenge.consumed_at.is_(None),
+    ).update({EmailOtpChallenge.consumed_at: now}, synchronize_session=False)
+
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    salt = secrets.token_hex(16)
+    challenge = EmailOtpChallenge(
+        email=email,
+        code_salt=salt,
+        code_hash=_email_otp_hash(email, salt, code),
+        attempts=0,
+        expires_at=now + timedelta(minutes=5),
+        created_at=now,
+    )
+    db.add(challenge)
+    db.commit()
+
+    try:
+        send_email(
+            recipient=email,
+            subject="Your DEIS sign-in code",
+            body=f"Your DEIS sign-in code is {code}. It expires in 5 minutes and can only be used once.",
+        )
+    except (OSError, smtplib.SMTPException) as exc:
+        challenge.consumed_at = datetime.utcnow()
+        db.commit()
+        logger.error("Email OTP could not be accepted by the configured mail provider")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email OTP could not be sent. Please try again later.",
+        ) from exc
+
+    return {"message": GENERIC_EMAIL_OTP_MESSAGE}
+
+
+@router.post("/email-otp/verify", response_model=Token)
+def verify_email_otp(
+    payload: EmailOtpVerifyRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Token:
+    email = payload.email
+    enforce_rate_limit(
+        db,
+        action="email_otp_verify_ip",
+        key=_client_ip(request),
+        limit=20,
+        window_seconds=3600,
+    )
+    enforce_rate_limit(
+        db,
+        action="email_otp_verify_email",
+        key=email,
+        limit=10,
+        window_seconds=3600,
+    )
+
+    challenge = (
+        db.query(EmailOtpChallenge)
+        .filter(
+            EmailOtpChallenge.email == email,
+            EmailOtpChallenge.consumed_at.is_(None),
+        )
+        .order_by(EmailOtpChallenge.created_at.desc(), EmailOtpChallenge.id.desc())
+        .with_for_update()
+        .first()
+    )
+    now = datetime.utcnow()
+    if challenge is None:
+        _log_failed_login(db, request, "Email OTP")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired email code")
+
+    if challenge.attempts >= EMAIL_OTP_MAX_ATTEMPTS:
+        challenge.consumed_at = now
+        db.commit()
+        _log_failed_login(db, request, "Email OTP")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many incorrect codes. Request a new code.",
+        )
+
+    if challenge.expires_at <= now:
+        challenge.consumed_at = now
+        db.commit()
+        _log_failed_login(db, request, "Email OTP")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired email code")
+
+    expected_hash = _email_otp_hash(email, challenge.code_salt, payload.code)
+    if not hmac.compare_digest(challenge.code_hash, expected_hash):
+        challenge.attempts += 1
+        db.commit()
+        _log_failed_login(db, request, "Email OTP")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired email code")
+
+    user = db.query(User).filter(func.lower(User.email) == email).with_for_update().first()
+    if not user or not user.is_active or user.terms_accepted_at is None:
+        challenge.consumed_at = now
+        db.commit()
+        _log_failed_login(db, request, "Email OTP", user)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired email code")
+
+    challenge.consumed_at = now
+    user.email_verified = True
+    db.commit()
+    _log_login(db, request, user, "Email OTP")
+    return Token(access_token=create_access_token(user), token_type="bearer")
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
