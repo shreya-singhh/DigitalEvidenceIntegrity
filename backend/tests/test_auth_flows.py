@@ -173,6 +173,36 @@ def test_google_login_links_verified_email_and_requires_terms_for_new_accounts(m
         assert created_user.terms_accepted_at is not None
 
 
+def test_google_login_rejects_invalid_id_token(monkeypatch):
+    monkeypatch.setattr(settings, "google_client_id", "client-id.apps.googleusercontent.com")
+
+    def reject_token(credential):
+        raise ValueError("Google token signature is invalid")
+
+    monkeypatch.setattr(auth_routes, "verify_google_id_token", reject_token)
+    response = client.post(
+        "/api/auth/google",
+        json={"credential": "invalid-google-id-token-123456789", "terms_accepted": True},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid Google credentials"
+
+
+def test_google_login_reports_missing_server_configuration(monkeypatch):
+    monkeypatch.setattr(settings, "google_client_id", None)
+
+    response = client.post(
+        "/api/auth/google",
+        json={"credential": "google-id-token-1234567890", "terms_accepted": True},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Google sign-in is not configured. Set GOOGLE_CLIENT_ID on the backend."
+    )
+
+
 def test_auth_options_preserve_google_and_omit_phone_settings(monkeypatch):
     client_id = "client-id.apps.googleusercontent.com"
     monkeypatch.setattr(settings, "google_client_id", client_id)

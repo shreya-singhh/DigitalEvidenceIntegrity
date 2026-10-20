@@ -23,6 +23,7 @@ declare global {
           initialize: (options: {
             client_id: string
             callback: (response: { credential?: string }) => void
+            error_callback?: () => void
           }) => void
           renderButton: (element: HTMLElement, options: Record<string, string>) => void
         }
@@ -43,36 +44,48 @@ export default function LoginPage() {
   const [googleTermsAccepted, setGoogleTermsAccepted] = useState(false)
   const [options, setOptions] = useState<AuthOptions | null>(null)
   const [googleReady, setGoogleReady] = useState(false)
+  const [googleOptionsError, setGoogleOptionsError] = useState(false)
+  const [googleError, setGoogleError] = useState<string | null>(null)
 
   useEffect(() => {
     authApi.options()
       .then(({ data }) => setOptions(data))
-      .catch(() => setOptions({
-        google_enabled: false,
-        google_client_id: null,
-      }))
+      .catch(() => setGoogleOptionsError(true))
   }, [])
 
   useEffect(() => {
-    if (!options?.google_enabled || !options.google_client_id || !googleButton.current) return
+    const googleClientId = options?.google_client_id
+    if (!options?.google_enabled || !googleClientId || !googleButton.current) return
     let script = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]')
     const initialize = () => {
       if (!window.google || !googleButton.current) return
       window.google.accounts.id.initialize({
-        client_id: options.google_client_id as string,
+        client_id: googleClientId,
         callback: (response) => {
           if (!response.credential) {
-            toast.error("Google sign-in did not return a credential")
+            const message = "Google sign-in did not return a credential. Please try again."
+            setGoogleError(message)
+            toast.error(message)
             return
           }
+          setGoogleError(null)
           setBusy(true)
           loginWithGoogle(response.credential, googleTermsAccepted)
             .then(() => {
               toast.success("Signed in securely")
               navigate("/dashboard")
             })
-            .catch((error) => toast.error(extractApiError(error)))
+            .catch((error) => {
+              const message = extractApiError(error)
+              setGoogleError(message)
+              toast.error(message)
+            })
             .finally(() => setBusy(false))
+        },
+        error_callback: () => {
+          const message = "Google sign-in could not open. Allow pop-ups and try again."
+          setGoogleError(message)
+          toast.error(message)
         },
       })
       googleButton.current.replaceChildren()
@@ -91,7 +104,10 @@ export default function LoginPage() {
       script.async = true
       script.defer = true
       script.onload = initialize
-      script.onerror = () => setGoogleReady(false)
+      script.onerror = () => {
+        setGoogleReady(false)
+        setGoogleError("Google's sign-in service could not be loaded. Check your connection and try again.")
+      }
       document.head.appendChild(script)
     } else if (window.google) {
       initialize()
@@ -220,8 +236,25 @@ export default function LoginPage() {
             {!googleReady && <p className="mt-2 text-center text-xs text-slate-500">Google sign-in is loading.</p>}
           </div>
         )}
+        {googleOptionsError && (
+          <p className="mt-5 text-center text-xs text-amber-300" role="status">
+            Sign-in options could not be loaded. Please refresh the page or use username and password.
+          </p>
+        )}
         {options && !options.google_enabled && (
-          <p className="mt-5 text-center text-xs text-slate-500">Google sign-in is not enabled for this deployment.</p>
+          <p className="mt-5 text-center text-xs text-slate-400" role="status">
+            Google sign-in is not configured. Contact the administrator to enable it.
+          </p>
+        )}
+        {options?.google_enabled && (
+          <>
+            {googleError && (
+              <p className="mt-3 text-center text-xs text-amber-300" role="alert">{googleError}</p>
+            )}
+            <p className="mt-2 text-center text-xs text-slate-500">
+              Closing the Google sign-in window cancels the attempt; you can retry or use password sign-in.
+            </p>
+          </>
         )}
         <div className="mt-7 flex items-center justify-center gap-2 text-xs text-slate-500">
           <ShieldCheck aria-hidden="true" size={15} className="text-ice/70" />

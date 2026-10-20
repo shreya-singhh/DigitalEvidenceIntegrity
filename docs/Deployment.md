@@ -29,7 +29,11 @@ alembic upgrade head
 
 Authentication providers are optional but remain unavailable until configured:
 
-- Google Identity Services: set `GOOGLE_CLIENT_ID` to the OAuth web client ID. Add the deployed frontend origin to the authorized JavaScript origins in Google Cloud. The backend verifies the returned ID token and does not need a Google client secret for this credential flow.
+- Google Identity Services: set `GOOGLE_CLIENT_ID` on the backend Render service to the OAuth **Web application** client ID. This is the backend's expected ID-token audience and is returned by `/api/auth/options` for the frontend Google button; no separate frontend client-ID variable is needed. The ID is public and is not a client secret.
+- In Google Cloud Console, open **APIs & Services → Credentials**, edit that same OAuth web client, and add `https://digital-evidence-frontend.onrender.com` under **Authorized JavaScript origins**. The current frontend flow uses the Google Identity Services popup callback and posts its ID token to the existing backend endpoint, so it does not require an authorized redirect URI. Do not add a client secret to the frontend or repository.
+- After setting `GOOGLE_CLIENT_ID`, save the backend Render environment so the service restarts. Redeploy/rebuild the frontend when deploying frontend code changes; it reads the client ID at runtime from `/api/auth/options`.
+- The backend verifies the token signature, expiry, audience, and issuer before using its claims. Keep `CORS_ORIGINS` set to `https://digital-evidence-frontend.onrender.com` so the browser can reach the API.
+- In the Render frontend service, set the build environment variable `VITE_API_BASE_URL` to `https://digitalevidenceintegrity.onrender.com/api`. Do not set a second Google client ID on the frontend; `/api/auth/options` provides the same public ID the backend validates as its audience.
 - Password recovery and email verification: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `SMTP_USE_TLS` to the transactional email service credentials.
 
 Unset providers are not simulated: Google sign-in stays unavailable, and email recovery/verification endpoints return a setup error. Store provider credentials only in Render environment settings. The browser receives only the public Google client ID through `/api/auth/options`.
