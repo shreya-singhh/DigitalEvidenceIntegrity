@@ -27,6 +27,10 @@ A full-stack application for managing digital evidence, case records, metadata e
 3. Start the database with Docker Compose or a local PostgreSQL instance.
 4. Install backend dependencies and start the API from the backend folder.
 
+## Authentication providers
+
+Password login and registration use the existing JWT API. Optional Google sign-in and SMTP password recovery are enabled only when configured in backend environment settings. See [Deployment](./docs/Deployment.md) for Render environment setup and migration commands. Never add real provider credentials or production secrets to `.env.example` or source control.
+
 ## Local development
 
 The default PostgreSQL URL is:

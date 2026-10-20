@@ -105,7 +105,10 @@ def test_verification_fails_when_file_contents_have_changed():
     assert data["verification_status"] == "FAILED"
     assert data["stored_hash"] == upload_response.json()["sha256_hash"]
     assert data["current_hash"] != data["stored_hash"]
-    assert data["message"] == "INTEGRITY FAILED: possible tampering or modification detected."
+    assert data["message"] == (
+        "The submitted comparison file does not match the registered reference. "
+        "This result alone does not establish that the stored original was modified."
+    )
 
     db = TestSessionLocal()
     try:
@@ -388,7 +391,7 @@ def test_failed_verification_creates_an_audit_event():
         assert logs[0].entity_type == "evidence"
         assert logs[0].entity_id == evidence_id
         assert logs[0].created_at is not None
-        assert "Result=INTEGRITY FAILED" in logs[0].description
+        assert "Result=COMPARISON FAILED" in logs[0].description
         assert "reference_sha256=" in logs[0].description
         assert "live_sha256=" in logs[0].description
     finally:

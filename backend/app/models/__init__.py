@@ -1,5 +1,8 @@
 from .audit_log import AuditLog
+from .auth_challenge import AuthChallenge
+from .auth_rate_limit import AuthRateLimit
 from .case import Case
+from .case_access import CaseAccess
 from .chain_of_custody import ChainOfCustody
 from .evidence import Evidence
 from .metadata import Metadata
@@ -12,10 +15,13 @@ __all__ = [
     "User",
     "Session",
     "Case",
+    "CaseAccess",
     "Evidence",
     "Metadata",
     "VerificationLog",
     "ChainOfCustody",
     "Report",
     "AuditLog",
+    "AuthChallenge",
+    "AuthRateLimit",
 ]

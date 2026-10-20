@@ -81,10 +81,7 @@ export function AppShell() {
           <p className="truncate font-mono text-[11px] text-slate-500">{user?.email}</p>
           <button
             type="button"
-            onClick={() => {
-              logout()
-              navigate("/login")
-            }}
+            onClick={() => void logout().then(() => navigate("/login"))}
             className="mt-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-slate-400 hover:text-flare"
           >
             <LogOut className="h-3.5 w-3.5" />
@@ -110,10 +107,7 @@ export function AppShell() {
               type="button"
               aria-label="Sign out"
               title="Sign out"
-              onClick={() => {
-                logout()
-                navigate("/login")
-              }}
+              onClick={() => void logout().then(() => navigate("/login"))}
               className="rounded-md border border-white/10 p-2 text-slate-400 transition hover:border-flare/40 hover:text-flare lg:hidden"
             >
               <LogOut className="h-4 w-4" />

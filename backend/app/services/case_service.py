@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.case import Case
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.case_repository import CaseRepository
+from app.services.access_control import require_case_access, require_case_owner
 from app.schemas.case import CaseCreate, CaseUpdate
 
 VALID_CASE_STATUSES = {"OPEN", "UNDER_REVIEW", "CLOSED", "ARCHIVED"}
@@ -60,18 +61,13 @@ class CaseService:
         return case
 
     def get_case(self, case_id: int, user_id: int) -> Case:
-        case = self.repository.get_case_by_id(case_id)
-        if case is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found")
-        if case.created_by != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this case")
-        return case
+        return require_case_access(self.db, case_id, user_id)
 
     def list_cases(self, user_id: int) -> list[Case]:
         return self.repository.list_cases(owner_id=user_id)
 
     def update_case(self, case_id: int, user_id: int, case_update: CaseUpdate) -> Case:
-        case = self.get_case(case_id, user_id)
+        case = require_case_owner(self.db, case_id, user_id)
 
         if case_update.title is not None:
             case_update.title = case_update.title.strip()

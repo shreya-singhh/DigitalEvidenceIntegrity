@@ -6,4 +6,29 @@ Document API endpoints, request shapes, and response shapes.
 
 ## Authentication
 
-Describe JWT login and protected routes.
+Protected routes require the existing JWT bearer token. Google sign-in continues to use the same authentication flow and receives the same case permissions as other authenticated users.
+
+## Case access
+
+Cases are visible to their creator and to active registered users with a case-level grant. A case creator can manage grants using the recipient's registered email:
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/cases/{case_id}/access` | List grants (case creator only) |
+| `POST` | `/api/cases/{case_id}/access` | Grant access with `{"email":"investigator@example.com"}` (case creator only) |
+| `DELETE` | `/api/cases/{case_id}/access/{user_id}` | Revoke access (case creator only) |
+
+Grant and revoke operations are written to the case audit trail. Authorization checks use the current database grant on each request, so revocation takes effect immediately. Investigators have read, evidence-verification, and download access; case updates and evidence uploads remain owner-only.
+
+## Evidence access and integrity
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/evidence/{evidence_id}` | Read the evidence record; requires case access |
+| `GET` | `/api/evidence/{evidence_id}/integrity` | Recalculate SHA-256 from the stored original and compare it with the registration reference |
+| `GET` | `/api/evidence/{evidence_id}/download` | Download the stored original; requires case access and returns `X-Evidence-Integrity: VERIFIED`, `FAILED`, or `MISSING` |
+| `POST` | `/api/evidence/{evidence_id}/verify` | Compare the uploaded file with the registered reference; response target is `SUBMITTED_FILE` |
+
+Stored-original checks return `verification_target: "STORED_ORIGINAL"` and record the actor, result, and hashes. Submitted-file comparisons return `verification_target: "SUBMITTED_FILE"`; a failed comparison does not by itself mean that the server's stored original changed. Each newly uploaded copy creates its own evidence record and reference hash.
+
+Evidence retrieval, downloads, verification, access changes, and existing metadata, chain-of-custody, report, and audit operations enforce case access in the backend. Non-owners cannot update or delete registered evidence through the API.

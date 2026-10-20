@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
-import { healthApi } from "@/lib/api"
+import { authApi, healthApi } from "@/lib/api"
 import { extractApiError, formatDate } from "@/lib/utils"
 
 export default function SettingsPage() {
@@ -19,6 +19,15 @@ export default function SettingsPage() {
       .catch((err) => setHealth(extractApiError(err)))
   }, [])
 
+  async function requestEmailVerification() {
+    try {
+      const { data } = await authApi.requestEmailVerification()
+      toast.success(data.message)
+    } catch (error) {
+      toast.error(extractApiError(error))
+    }
+  }
+
   return (
     <div>
       <PageHeader kicker="Account and system" title="Settings" detail="View account details and check the backend connection." />
@@ -32,7 +41,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <dt className="text-slate-500">Email</dt>
-              <dd>{user?.email}</dd>
+              <dd>{user?.email} <span className="text-xs text-slate-500">{user?.email_verified ? "· verified" : "· unverified"}</span></dd>
             </div>
             <div>
               <dt className="text-slate-500">Status</dt>
@@ -43,14 +52,18 @@ export default function SettingsPage() {
               <dd>{formatDate(user?.created_at)}</dd>
             </div>
           </dl>
+          {user && !user.email_verified && (
+            <Button className="relative z-10 mt-4" variant="outline" size="sm" onClick={requestEmailVerification}>
+              Send email verification
+            </Button>
+          )}
           <Button
             className="relative z-10 mt-6"
             variant="danger"
-            onClick={() => {
-              logout()
-              toast.message("Session cleared")
+            onClick={() => void logout().then(() => {
+              toast.message("Session ended")
               navigate("/login")
-            }}
+            })}
           >
             End session
           </Button>
@@ -59,7 +72,7 @@ export default function SettingsPage() {
           <h2 className="text-sm uppercase tracking-[0.2em] text-slate-400">Backend Status</h2>
           <p className="relative z-10 mt-4 font-mono text-ice">{health}</p>
           <p className="relative z-10 mt-3 text-sm text-slate-400">
-            API traffic is proxied through Vite to FastAPI (`/api`). JWT is stored locally as a bearer token.
+            API traffic is proxied through Vite to FastAPI (`/api`). The bearer token is stored in browser storage according to the sign-in persistence choice.
           </p>
           <p className="relative z-10 mt-3 text-xs text-slate-500">
             Supported file types: PDF, JPG, JPEG, PNG, MP4, MP3, DOCX, and TXT · 25 MB maximum.

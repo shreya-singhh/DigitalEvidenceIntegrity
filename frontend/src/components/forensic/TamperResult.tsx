@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/utils"
 export function TamperResult({ result }: { result: VerificationResult }) {
   const failed = result.verification_status === "FAILED"
   const missing = result.verification_status === "MISSING"
+  const submittedFileComparison = result.verification_target === "SUBMITTED_FILE"
 
   return (
     <motion.div
@@ -27,9 +28,13 @@ export function TamperResult({ result }: { result: VerificationResult }) {
           <ShieldCheck className="h-8 w-8 text-mint" />
         )}
         <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Integrity verdict</p>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
+            {submittedFileComparison ? "Comparison result" : "Integrity verdict"}
+          </p>
           <p className={`text-3xl font-bold tracking-[0.18em] ${failed || missing ? "text-flare" : "text-mint"}`}>
-            {failed ? "INTEGRITY FAILED" : missing ? "MISSING" : "VERIFIED"}
+            {submittedFileComparison
+              ? failed ? "COMPARISON FAILED" : "COMPARISON MATCH"
+              : failed ? "INTEGRITY FAILED" : missing ? "MISSING" : "VERIFIED"}
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion"
 import { ShieldAlert, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { VerificationStatus } from "@/types/api"
+import type { VerificationStatus, VerificationTarget } from "@/types/api"
 
 const labels: Record<VerificationStatus | "IDLE", string> = {
   VERIFIED: "VERIFIED",
@@ -14,11 +14,19 @@ export function IntegrityStatus({
   status = "IDLE",
   count,
   total,
+  verificationTarget,
 }: {
   status?: VerificationStatus | "IDLE"
   count?: number
   total?: number
+  verificationTarget?: VerificationTarget
 }) {
+  const label =
+    verificationTarget === "SUBMITTED_FILE" && status === "VERIFIED"
+      ? "COMPARISON MATCH"
+      : verificationTarget === "SUBMITTED_FILE" && status === "FAILED"
+        ? "COMPARISON FAILED"
+        : labels[status]
   const tone =
     status === "VERIFIED" ? "text-mint border-mint/40" : status === "FAILED" ? "text-flare border-flare/50" : "text-ice border-ice/30"
 
@@ -50,7 +58,7 @@ export function IntegrityStatus({
             tone.split(" ")[0],
           )}
         >
-          {labels[status]}
+          {label}
         </p>
         {typeof count === "number" && typeof total === "number" && (
           <p className="mt-2 font-mono text-xs text-slate-400">

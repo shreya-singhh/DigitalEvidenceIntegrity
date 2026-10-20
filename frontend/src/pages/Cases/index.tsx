@@ -36,7 +36,7 @@ export default function CasesPage() {
         <PageHeader kicker="Case records" title="Cases" detail="Cases are associated with the logged-in user." />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>Open case</Button>
+            <Button>Report Case</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

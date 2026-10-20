@@ -55,7 +55,14 @@ def generate_case_report(db: Session, case: Case, user: User) -> Path:
             .order_by(VerificationLog.created_at.asc(), VerificationLog.id.asc())
             .all()
         )
-        latest_verification = verification_logs[-1] if verification_logs else None
+        latest_stored_check = next(
+            (
+                log
+                for log in reversed(verification_logs)
+                if log.verification_target == "STORED_ORIGINAL"
+            ),
+            None,
+        )
         report_evidence.append(
             {
                 "evidence_id": evidence.id,
@@ -67,11 +74,12 @@ def generate_case_report(db: Session, case: Case, user: User) -> Path:
                 "reference_sha256": evidence.sha256_hash,
                 "sha256_current": current_hash,
                 "integrity_status": integrity_status,
-                "verification_status": latest_verification.status if latest_verification else "PENDING",
+                "verification_status": latest_stored_check.status if latest_stored_check else "PENDING",
                 "verification_history": [
                     {
                         "timestamp": log.created_at.isoformat(),
                         "verified_by": log.verifier.username,
+                        "verification_target": log.verification_target,
                         "status": log.status,
                         "reference_sha256": log.original_hash,
                         "live_sha256": log.calculated_hash,
@@ -88,7 +96,8 @@ def generate_case_report(db: Session, case: Case, user: User) -> Path:
                         "details": log.details,
                     }
                     for log in verification_logs
-                    if log.status.upper() in {"FAILED", "MISSING"}
+                    if log.verification_target == "STORED_ORIGINAL"
+                    and log.status.upper() in {"FAILED", "MISSING"}
                 ],
             }
         )

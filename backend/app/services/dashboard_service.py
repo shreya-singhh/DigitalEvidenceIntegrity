@@ -1,18 +1,26 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
 from app.models.case import Case
+from app.models.case_access import CaseAccess
 from app.models.evidence import Evidence
 from app.models.verification_log import VerificationLog
 from app.schemas.dashboard import DashboardSummary
 
 
 def get_dashboard_data(db: Session, user_id: int) -> DashboardSummary:
-    owned_case_ids = select(Case.id).where(Case.created_by == user_id)
+    accessible_case_ids = (
+        select(Case.id)
+        .outerjoin(CaseAccess, CaseAccess.case_id == Case.id)
+        .where(or_(Case.created_by == user_id, CaseAccess.user_id == user_id))
+    )
     latest_verification_id = (
         select(func.max(VerificationLog.id))
-        .where(VerificationLog.evidence_id == Evidence.id)
+        .where(
+            VerificationLog.evidence_id == Evidence.id,
+            VerificationLog.verification_target == "STORED_ORIGINAL",
+        )
         .correlate(Evidence)
         .scalar_subquery()
     )
@@ -20,17 +28,17 @@ def get_dashboard_data(db: Session, user_id: int) -> DashboardSummary:
         db.query(VerificationLog.status)
         .select_from(Evidence)
         .outerjoin(VerificationLog, VerificationLog.id == latest_verification_id)
-        .filter(Evidence.case_id.in_(owned_case_ids))
+        .filter(Evidence.case_id.in_(accessible_case_ids))
         .all()
     )
     statuses = [row.status.upper() if row.status else None for row in current_statuses]
     return DashboardSummary(
         active_cases=db.query(func.count(Case.id))
-        .filter(Case.created_by == user_id, func.upper(Case.status).in_(("OPEN", "UNDER_REVIEW")))
+        .filter(Case.id.in_(accessible_case_ids), func.upper(Case.status).in_(("OPEN", "UNDER_REVIEW")))
         .scalar()
         or 0,
         total_evidence=db.query(func.count(Evidence.id))
-        .filter(Evidence.case_id.in_(owned_case_ids))
+        .filter(Evidence.case_id.in_(accessible_case_ids))
         .scalar()
         or 0,
         verified_evidence=sum(status == "VERIFIED" for status in statuses),
@@ -38,7 +46,7 @@ def get_dashboard_data(db: Session, user_id: int) -> DashboardSummary:
         pending_verification=sum(status is None for status in statuses),
         verification_records=db.query(func.count(VerificationLog.id))
         .join(Evidence, VerificationLog.evidence_id == Evidence.id)
-        .filter(Evidence.case_id.in_(owned_case_ids))
+        .filter(Evidence.case_id.in_(accessible_case_ids))
         .scalar()
         or 0,
         audit_events=db.query(func.count(AuditLog.id))

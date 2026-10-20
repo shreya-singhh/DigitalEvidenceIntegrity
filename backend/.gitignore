@@ -1,10 +1,26 @@
-# Backend gitignore
+# Python cache and generated files
 __pycache__/
-*.pyc
-.env
+*.py[cod]
 .pytest_cache/
-logs/
-uploads/
-reports/
+
+# Python virtual environments
 .venv/
 venv/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+backend/stderr
+
+# Local evidence uploads and generated reports
+uploads/
+reports/
+
+# Frontend dependencies and build output
+node_modules/
+dist/

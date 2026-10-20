@@ -13,6 +13,7 @@ from app.models.evidence import Evidence
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.evidence_repository import EvidenceRepository
+from app.services.access_control import require_case_access, require_evidence_access
 from app.utils.validators import is_valid_extension, is_valid_upload_size
 
 
@@ -127,18 +128,10 @@ def upload_evidence(
 
 
 def get_evidence_record(db: Session, evidence_id: int, current_user: User) -> Evidence:
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
-    if evidence is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found")
-    if evidence.case is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found")
-    if evidence.case.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this evidence")
-    return evidence
-
+    return require_evidence_access(db, evidence_id, current_user.id)
 
 def list_case_evidence(db: Session, case_id: int, current_user: User) -> list[Evidence]:
-    case = _validate_case_access(db, case_id, current_user)
+    case = require_case_access(db, case_id, current_user.id)
     repository = EvidenceRepository(db)
     return repository.get_by_case_id(case.id)
 

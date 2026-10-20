@@ -52,7 +52,10 @@ export default function VerifyPage() {
       />
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <div className="glass-panel p-4">
-          <IntegrityStatus status={result?.verification_status ?? "IDLE"} />
+          <IntegrityStatus
+            status={result?.verification_status ?? "IDLE"}
+            verificationTarget={result?.verification_target}
+          />
         </div>
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3">

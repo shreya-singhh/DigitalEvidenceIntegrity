@@ -83,14 +83,17 @@ def test_dashboard_evidence_verification_metadata_and_report_workflow(tmp_path, 
     )
     assert mismatch.status_code == 200, mismatch.text
     assert mismatch.json()["verification_status"] == "FAILED"
+    stored_integrity = client.get(f"/api/evidence/{evidence['id']}/integrity", headers=headers)
+    assert stored_integrity.status_code == 200, stored_integrity.text
+    assert stored_integrity.json()["verification_status"] == "VERIFIED"
 
     dashboard = client.get("/api/dashboard", headers=headers)
     assert dashboard.status_code == 200, dashboard.text
     assert dashboard.json()["total_evidence"] == 1
-    assert dashboard.json()["verified_evidence"] == 0
-    assert dashboard.json()["integrity_failed_evidence"] == 1
+    assert dashboard.json()["verified_evidence"] == 1
+    assert dashboard.json()["integrity_failed_evidence"] == 0
     assert dashboard.json()["pending_verification"] == 0
-    assert dashboard.json()["verification_records"] == 2
+    assert dashboard.json()["verification_records"] == 3
 
     report = client.get(f"/api/reports/case/{case['id']}", headers=headers)
     assert report.status_code == 200, report.text
@@ -98,9 +101,10 @@ def test_dashboard_evidence_verification_metadata_and_report_workflow(tmp_path, 
     assert data["case"]["id"] == case["id"]
     report_evidence = next(item for item in data["evidence"] if item["evidence_id"] == evidence["id"])
     assert report_evidence["integrity_status"] == "MATCH"
-    assert report_evidence["verification_status"] == "FAILED"
+    assert report_evidence["verification_status"] == "VERIFIED"
     assert report_evidence["reference_sha256"] == evidence["sha256_hash"]
-    assert report_evidence["integrity_failures"][0]["live_sha256"] == mismatch.json()["current_hash"]
+    assert report_evidence["integrity_failures"] == []
+    assert report_evidence["verification_history"][1]["verification_target"] == "SUBMITTED_FILE"
     assert data["audit_events"]
     assert data["chain_of_custody"]
 
@@ -113,6 +117,7 @@ def test_dashboard_evidence_verification_metadata_and_report_workflow(tmp_path, 
         "METADATA_EXTRACTED",
         "EVIDENCE_VERIFIED",
         "EVIDENCE_VERIFICATION_FAILED",
+        "EVIDENCE_VERIFIED",
         "REPORT_GENERATED",
     } <= actions
 
@@ -128,6 +133,7 @@ def test_dashboard_evidence_verification_metadata_and_report_workflow(tmp_path, 
         "EVIDENCE_METADATA_VIEWED",
         "EVIDENCE_VERIFIED",
         "EVIDENCE_VERIFICATION_FAILED",
+        "EVIDENCE_VERIFIED",
         "EVIDENCE_REPORT_GENERATED",
     ]
     assert all(event["username"] for event in custody_data["events"])
@@ -135,7 +141,7 @@ def test_dashboard_evidence_verification_metadata_and_report_workflow(tmp_path, 
     db = TestSessionLocal()
     try:
         verification_logs = db.query(VerificationLog).filter_by(evidence_id=evidence["id"]).all()
-        assert len(verification_logs) == 2
+        assert len(verification_logs) == 3
         assert {entry.status for entry in verification_logs} == {"VERIFIED", "FAILED"}
         assert db.query(Report).filter_by(evidence_id=evidence["id"]).count() == 1
     finally:
@@ -181,6 +187,14 @@ def test_dashboard_counts_latest_verified_failed_and_pending_evidence(tmp_path, 
             headers=headers,
         )
         assert response.status_code == 200, response.text
+
+    for index in (0, 1):
+        storage_path = Path(uploaded[index]["storage_path"])
+        if index == 1:
+            storage_path.write_bytes(b"tampered stored payload")
+        integrity = client.get(f"/api/evidence/{uploaded[index]['id']}/integrity", headers=headers)
+        assert integrity.status_code == 200, integrity.text
+        assert integrity.json()["verification_status"] == ("VERIFIED" if index == 0 else "FAILED")
 
     dashboard = client.get("/api/dashboard", headers=headers)
     assert dashboard.status_code == 200, dashboard.text

@@ -10,11 +10,17 @@ class VerificationStatus(str, Enum):
     MISSING = "MISSING"
 
 
+class VerificationTarget(str, Enum):
+    SUBMITTED_FILE = "SUBMITTED_FILE"
+    STORED_ORIGINAL = "STORED_ORIGINAL"
+
+
 class VerificationBase(BaseModel):
     evidence_id: int
 
 
 class VerificationResult(VerificationBase):
+    verification_target: VerificationTarget
     verification_status: VerificationStatus
     stored_hash: str
     current_hash: str | None = None

@@ -1,6 +1,7 @@
 import axios from "axios"
 import type {
   AuditLog,
+  CaseAccessGrant,
   CaseCreate,
   CaseRecord,
   CaseUpdate,
@@ -17,12 +18,16 @@ import type {
 const TOKEN_KEY = "deis.access_token"
 
 export function getStoredToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY)
 }
 
-export function setStoredToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+export function setStoredToken(token: string | null, remember = true) {
+  localStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
+  if (token) {
+    const storage = remember ? localStorage : sessionStorage
+    storage.setItem(TOKEN_KEY, token)
+  }
 }
 
 export const api = axios.create({
@@ -43,8 +48,29 @@ api.interceptors.request.use((config) => {
 export const authApi = {
   login: (payload: { username?: string; email?: string; password: string }) =>
     api.post<Token>("/auth/login", payload),
-  register: (payload: { username: string; email: string; password: string }) =>
+  register: (payload: {
+    username: string
+    email: string
+    password: string
+    full_name: string
+    terms_accepted: boolean
+  }) =>
     api.post<User>("/auth/register", payload),
+  options: () => api.get<{
+    google_enabled: boolean
+    google_client_id: string | null
+    email_delivery_enabled: boolean
+  }>("/auth/options"),
+  googleLogin: (credential: string, terms_accepted: boolean) =>
+    api.post<Token>("/auth/google", { credential, terms_accepted }),
+  requestPasswordReset: (email: string) =>
+    api.post<{ message: string }>("/auth/password-reset/request", { email }),
+  confirmPasswordReset: (token: string, new_password: string) =>
+    api.post<{ message: string }>("/auth/password-reset/confirm", { token, new_password }),
+  requestEmailVerification: () => api.post<{ message: string }>("/auth/email-verification/request"),
+  confirmEmailVerification: (token: string) =>
+    api.post<{ message: string }>("/auth/email-verification/confirm", { token }),
+  logout: () => api.post<{ message: string }>("/auth/logout"),
   me: () => api.get<User>("/auth/me"),
 }
 
@@ -53,6 +79,11 @@ export const casesApi = {
   get: (id: number) => api.get<CaseRecord>(`/cases/${id}`),
   create: (payload: CaseCreate) => api.post<CaseRecord>("/cases", payload),
   update: (id: number, payload: CaseUpdate) => api.patch<CaseRecord>(`/cases/${id}`, payload),
+  access: (id: number) => api.get<CaseAccessGrant[]>(`/cases/${id}/access`),
+  grantAccess: (id: number, email: string) =>
+    api.post<CaseAccessGrant>(`/cases/${id}/access`, { email }),
+  revokeAccess: (id: number, userId: number) =>
+    api.delete<void>(`/cases/${id}/access/${userId}`),
 }
 
 export const evidenceApi = {
@@ -64,6 +95,9 @@ export const evidenceApi = {
       },
     }),
   get: (id: number) => api.get<EvidenceRecord>(`/evidence/${id}`),
+  integrity: (id: number) => api.get<VerificationResult>(`/evidence/${id}/integrity`),
+  download: (id: number) =>
+    api.get<Blob>(`/evidence/${id}/download`, { responseType: "blob" }),
   listByCase: (caseId: number) => api.get<EvidenceRecord[]>(`/evidence/cases/${caseId}`),
   verify: (id: number, file: File) => {
     const form = new FormData()

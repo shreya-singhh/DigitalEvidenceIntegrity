@@ -2,6 +2,8 @@ export type User = {
   id: number
   email: string
   username: string
+  full_name: string
+  email_verified: boolean
   is_active: boolean
   created_at: string
 }
@@ -42,6 +44,14 @@ export type CaseUpdate = {
   priority?: CasePriority
 }
 
+export type CaseAccessGrant = {
+  user_id: number
+  username: string
+  email: string
+  granted_by: number
+  granted_at: string
+}
+
 export type EvidenceRecord = {
   id: number
   case_id: number
@@ -58,9 +68,11 @@ export type EvidenceRecord = {
 }
 
 export type VerificationStatus = "VERIFIED" | "FAILED" | "MISSING"
+export type VerificationTarget = "SUBMITTED_FILE" | "STORED_ORIGINAL"
 
 export type VerificationResult = {
   evidence_id: number
+  verification_target: VerificationTarget
   verification_status: VerificationStatus
   stored_hash: string
   current_hash: string | null

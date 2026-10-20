@@ -13,7 +13,7 @@ def configure_logging() -> None:
         level="INFO",
         enqueue=True,
         backtrace=True,
-        diagnose=True,
+        diagnose=False,
     )
     loguru_logger.add(
         "stderr",

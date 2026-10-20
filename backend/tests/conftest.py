@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 from app.database.base import Base
 from app.database.session import get_db
 from app.main import app
+from app.models.auth_rate_limit import AuthRateLimit
 
 TEST_ENGINE = create_engine(
     "sqlite://",
@@ -35,3 +36,10 @@ app.dependency_overrides[get_db] = override_get_db
 def ensure_test_db_state():
     Base.metadata.create_all(bind=TEST_ENGINE)
     yield
+
+
+@pytest.fixture(autouse=True)
+def clear_auth_rate_limits_between_tests():
+    with TestSessionLocal() as db:
+        db.query(AuthRateLimit).delete()
+        db.commit()

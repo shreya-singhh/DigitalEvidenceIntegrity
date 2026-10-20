@@ -1,6 +1,8 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.case import Case
+from app.models.case_access import CaseAccess
 
 
 class CaseRepository:
@@ -30,8 +32,10 @@ class CaseRepository:
     def list_cases(self, *, owner_id: int | None = None) -> list[Case]:
         query = self.session.query(Case)
         if owner_id is not None:
-            query = query.filter(Case.created_by == owner_id)
-        return query.order_by(Case.created_at.desc()).all()
+            query = query.outerjoin(CaseAccess, CaseAccess.case_id == Case.id).filter(
+                or_(Case.created_by == owner_id, CaseAccess.user_id == owner_id)
+            )
+        return query.distinct().order_by(Case.created_at.desc()).all()
 
     def update_case(self, case: Case, *, title: str | None = None, description: str | None = None, status: str | None = None, priority: str | None = None) -> Case:
         if title is not None:

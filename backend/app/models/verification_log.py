@@ -14,6 +14,7 @@ class VerificationLog(Base):
     verified_by = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     original_hash = Column(String(64), nullable=False)
     calculated_hash = Column(String(64), nullable=False)
+    verification_target = Column(String(32), nullable=False, default="SUBMITTED_FILE")
     status = Column(String(50), nullable=False)
     details = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

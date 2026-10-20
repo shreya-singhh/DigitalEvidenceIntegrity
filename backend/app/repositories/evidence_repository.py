@@ -1,6 +1,8 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.case import Case
+from app.models.case_access import CaseAccess
 from app.models.evidence import Evidence
 
 
@@ -23,8 +25,10 @@ class EvidenceRepository:
         return (
             self.session.query(Evidence)
             .join(Case, Evidence.case_id == Case.id)
-            .filter(Case.created_by == user_id)
+            .outerjoin(CaseAccess, CaseAccess.case_id == Case.id)
+            .filter(or_(Case.created_by == user_id, CaseAccess.user_id == user_id))
             .order_by(Evidence.uploaded_at.desc())
+            .distinct()
             .all()
         )
 

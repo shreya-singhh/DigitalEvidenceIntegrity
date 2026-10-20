@@ -34,7 +34,9 @@ export default function DashboardPage() {
 
   const recent = useMemo(() => [...evidence].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at)).slice(0, 3), [evidence])
   const verificationEvents = audit.filter(
-    (item) => item.action === "EVIDENCE_VERIFIED" || item.action === "EVIDENCE_VERIFICATION_FAILED",
+    (item) =>
+      (item.action === "EVIDENCE_VERIFIED" || item.action === "EVIDENCE_VERIFICATION_FAILED") &&
+      item.description?.includes("reason=stored original"),
   )
   const latestVerification = verificationEvents[0]
   const integrity = latestVerification

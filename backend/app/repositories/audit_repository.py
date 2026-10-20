@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.models.audit_log import AuditLog
@@ -19,6 +21,7 @@ class AuditRepository:
         description: str | None = None,
         ip_address: str | None = None,
         user_agent: str | None = None,
+        created_at: datetime | None = None,
     ) -> AuditLog:
         log = AuditLog(
             user_id=user_id,
@@ -30,6 +33,7 @@ class AuditRepository:
             description=description,
             ip_address=ip_address,
             user_agent=user_agent,
+            created_at=created_at or datetime.utcnow(),
         )
         self.session.add(log)
         self.session.commit()

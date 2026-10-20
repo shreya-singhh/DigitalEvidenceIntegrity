@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.auth.security import get_current_user
 from app.database.session import get_db
-from app.models.evidence import Evidence
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.chain_of_custody_repository import ChainOfCustodyRepository
 from app.services.metadata_service import MetadataService
+from app.services.access_control import require_evidence_access
+from app.services.verification_service import resolve_evidence_path
 
 router = APIRouter(prefix="/metadata", tags=["Metadata"])
 
@@ -23,17 +22,10 @@ def get_metadata_for_evidence(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    evidence = db.query(Evidence).filter(Evidence.id == evidence_id).first()
-    if evidence is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found")
-    if evidence.case is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Case not found")
-    if evidence.case.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to access this evidence")
+    evidence = require_evidence_access(db, evidence_id, current_user.id)
 
-    storage_path = evidence.storage_path
-    file_path = Path(storage_path)
-    if not file_path.exists():
+    file_path = resolve_evidence_path(evidence.storage_path)
+    if not file_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence file not found on disk")
 
     result = MetadataService.extract_metadata_for_file(
