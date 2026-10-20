@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
+from sqlalchemy.exc import OperationalError
 
 from app.api.router import api_router
 from app.core.config import settings
@@ -10,6 +11,7 @@ from app.core.diagnostics import safe_exception_diagnostics
 from app.core.logging import configure_logging
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.database.init_db import init_db
+from app.database.readiness import database_readiness_response
 
 configure_logging()
 
@@ -17,6 +19,7 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="Digital Evidence Integrity backend API",
+    debug=settings.debug,
 )
 
 app.add_middleware(
@@ -50,6 +53,11 @@ async def health() -> JSONResponse:
     )
 
 
+@app.get("/health/ready")
+async def readiness() -> JSONResponse:
+    return database_readiness_response()
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = [
@@ -76,4 +84,24 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Internal server error"},
+    )
+
+
+@app.exception_handler(OperationalError)
+async def database_unavailable_exception_handler(
+    request: Request,
+    exc: OperationalError,
+) -> JSONResponse:
+    route = request.scope.get("route")
+    route_path = getattr(route, "path", request.url.path)
+    logger.error(
+        "Database operation unavailable; method={method} route={route} diagnostics={diagnostics}",
+        method=request.method,
+        route=route_path,
+        diagnostics=safe_exception_diagnostics(exc),
+    )
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": "Database temporarily unavailable. Please try again shortly."},
+        headers={"Retry-After": "5"},
     )

@@ -4,7 +4,7 @@ import { toast } from "sonner"
 import { PageHeader } from "@/components/layout/PageHeader"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/AuthContext"
-import { authApi, healthApi } from "@/lib/api"
+import { healthApi } from "@/lib/api"
 import { extractApiError, formatDate } from "@/lib/utils"
 
 export default function SettingsPage() {
@@ -19,15 +19,6 @@ export default function SettingsPage() {
       .catch((err) => setHealth(extractApiError(err)))
   }, [])
 
-  async function requestEmailVerification() {
-    try {
-      const { data } = await authApi.requestEmailVerification()
-      toast.success(data.message)
-    } catch (error) {
-      toast.error(extractApiError(error))
-    }
-  }
-
   return (
     <div>
       <PageHeader kicker="Account and system" title="Settings" detail="View account details and check the backend connection." />
@@ -41,7 +32,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <dt className="text-slate-500">Email</dt>
-              <dd>{user?.email} <span className="text-xs text-slate-500">{user?.email_verified ? "· verified" : "· unverified"}</span></dd>
+              <dd>{user?.email}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Status</dt>
@@ -52,11 +43,6 @@ export default function SettingsPage() {
               <dd>{formatDate(user?.created_at)}</dd>
             </div>
           </dl>
-          {user && !user.email_verified && (
-            <Button className="relative z-10 mt-4" variant="outline" size="sm" onClick={requestEmailVerification}>
-              Send email verification
-            </Button>
-          )}
           <Button
             className="relative z-10 mt-6"
             variant="danger"

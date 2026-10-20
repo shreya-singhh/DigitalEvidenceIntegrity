@@ -8,8 +8,6 @@ type AuthContextValue = {
   user: User | null
   loading: boolean
   login: (identity: string, password: string, remember?: boolean) => Promise<void>
-  loginWithEmailOtp: (email: string, code: string, remember?: boolean) => Promise<void>
-  loginWithGoogle: (credential: string, termsAccepted: boolean) => Promise<void>
   register: (input: {
     username: string
     email: string
@@ -54,30 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             looksLikeEmail ? { email: identity, password } : { username: identity, password },
           )
           setStoredToken(res.data.access_token, remember)
-          const me = await authApi.me()
-          setUser(me.data)
-        } catch (err) {
-          setStoredToken(null)
-          setUser(null)
-          throw err
-        }
-      },
-      async loginWithEmailOtp(email, code, remember = true) {
-        try {
-          const response = await authApi.verifyEmailOtp(email, code)
-          setStoredToken(response.data.access_token, remember)
-          const me = await authApi.me()
-          setUser(me.data)
-        } catch (err) {
-          setStoredToken(null)
-          setUser(null)
-          throw err
-        }
-      },
-      async loginWithGoogle(credential, termsAccepted) {
-        try {
-          const response = await authApi.googleLogin(credential, termsAccepted)
-          setStoredToken(response.data.access_token)
           const me = await authApi.me()
           setUser(me.data)
         } catch (err) {

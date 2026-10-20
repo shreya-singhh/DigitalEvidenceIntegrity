@@ -1,5 +1,3 @@
-from typing import Any
-
 from sqlalchemy.exc import OperationalError
 
 from .session import engine

@@ -56,24 +56,6 @@ export const authApi = {
     terms_accepted: boolean
   }) =>
     api.post<User>("/auth/register", payload),
-  options: () => api.get<{
-    google_enabled: boolean
-    google_client_id: string | null
-    email_delivery_enabled: boolean
-  }>("/auth/options"),
-  sendEmailOtp: (email: string) =>
-    api.post<{ message: string }>("/auth/email-otp/send", { email }),
-  verifyEmailOtp: (email: string, code: string) =>
-    api.post<Token>("/auth/email-otp/verify", { email, code }),
-  googleLogin: (credential: string, terms_accepted: boolean) =>
-    api.post<Token>("/auth/google", { credential, terms_accepted }),
-  requestPasswordReset: (email: string) =>
-    api.post<{ message: string }>("/auth/password-reset/request", { email }),
-  confirmPasswordReset: (token: string, new_password: string) =>
-    api.post<{ message: string }>("/auth/password-reset/confirm", { token, new_password }),
-  requestEmailVerification: () => api.post<{ message: string }>("/auth/email-verification/request"),
-  confirmEmailVerification: (token: string) =>
-    api.post<{ message: string }>("/auth/email-verification/confirm", { token }),
   logout: () => api.post<{ message: string }>("/auth/logout"),
   me: () => api.get<User>("/auth/me"),
 }

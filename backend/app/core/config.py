@@ -37,10 +37,7 @@ class Settings(BaseSettings):
         validation_alias="REPORT_DIRECTORY",
     )
 
-    debug: bool = Field(
-        default=True,
-        validation_alias="DEBUG",
-    )
+    debug: bool = Field(default=False, validation_alias="DEBUG")
 
     app_name: str = Field(
         default="Digital Evidence Integrity System",
@@ -59,14 +56,6 @@ class Settings(BaseSettings):
         ],
         validation_alias="CORS_ORIGINS",
     )
-    google_client_id: str | None = Field(default=None, validation_alias="GOOGLE_CLIENT_ID")
-    smtp_host: str | None = Field(default=None, validation_alias="SMTP_HOST")
-    smtp_port: int = Field(default=587, ge=1, le=65535, validation_alias="SMTP_PORT")
-    smtp_username: str | None = Field(default=None, validation_alias="SMTP_USERNAME")
-    smtp_password: str | None = Field(default=None, validation_alias="SMTP_PASSWORD")
-    smtp_from_email: str | None = Field(default=None, validation_alias="SMTP_FROM_EMAIL")
-    smtp_use_tls: bool = Field(default=True, validation_alias="SMTP_USE_TLS")
-    public_app_url: str = Field(default="http://localhost:5173", validation_alias="PUBLIC_APP_URL")
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -88,27 +77,6 @@ class Settings(BaseSettings):
         if DEPLOYED_FRONTEND_ORIGIN not in origins:
             origins.append(DEPLOYED_FRONTEND_ORIGIN)
         return origins
-
-    @field_validator("google_client_id", mode="before")
-    @classmethod
-    def normalize_google_client_id(cls, value):
-        if value is None:
-            return None
-        if isinstance(value, str):
-            value = value.strip()
-            return value or None
-        return value
-
-    @property
-    def google_sign_in_enabled(self) -> bool:
-        value = self.google_client_id
-        if value is None:
-            return False
-        return bool(str(value).strip())
-
-    @property
-    def email_delivery_enabled(self) -> bool:
-        return bool(self.smtp_host and self.smtp_from_email)
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

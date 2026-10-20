@@ -56,7 +56,7 @@ https://digitalevidenceintegrity.onrender.com/docs
 
 ## Authentication providers
 
-Password login and registration use the existing JWT API. Optional Google sign-in and SMTP password recovery are enabled only when configured in backend environment settings. See [Deployment](./docs/Deployment.md) for Render environment setup and migration commands. Never add real provider credentials or production secrets to `.env.example` or source control.
+Password login and registration use the existing JWT API. Email-based recovery and third-party sign-in are not enabled; password recovery must be handled by a DEIS administrator. See [Deployment](./docs/Deployment.md) for Render environment setup and migration commands. Never add production secrets to `.env.example` or source control.
 
 ## Local development
 

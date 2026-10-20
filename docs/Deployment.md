@@ -17,41 +17,38 @@ postgresql+psycopg://evidence_app:${POSTGRES_PASSWORD}@db:5432/digital_evidence_
 
 Production deployments should keep the database credentials in environment variables and never commit actual secrets to source control.
 
-## Render authentication configuration
+## Render services
 
-Run the backend as a Render web service with the repository's `backend/Dockerfile`. Configure `DATABASE_URL`, `SECRET_KEY`, and `CORS_ORIGINS` in the Render environment settings. Set `CORS_ORIGINS` to `https://digital-evidence-frontend.onrender.com` (comma-separated with other trusted origins only when needed), and set `PUBLIC_APP_URL` to that frontend origin. `CORS_ORIGINS` overrides the backend's safe defaults, so an incorrect value can block browser requests even when the API endpoint itself returns HTTP 200. Do not set `CORS_ORIGINS=*` for production.
+The current backend Render service is a native Python service with root directory `backend/`, build command `pip install -r requirements.txt`, start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, and auto-deploy on commits to `main`. The backend Dockerfile is for Docker-based deployments.
 
-Apply schema changes from the backend working directory before deploying the new code:
+The frontend repository root is `frontend`, build command is `npm ci && npm run build`, and publish directory is `dist`. Set its build-time `VITE_API_BASE_URL` to `https://digitalevidenceintegrity.onrender.com/api`. The API client appends route paths without another `/api` prefix. Keep the frontend's existing SPA rewrite to serve `index.html` for client-side routes.
 
-```powershell
-alembic upgrade head
+Configure the backend Render service with:
+
+- `DATABASE_URL`: the existing persistent PostgreSQL connection URL; preserve the current database and credentials. Do not recreate the database.
+- `SECRET_KEY`: the existing strong random signing key; do not rotate it during this deployment.
+- `DEBUG`: `false`.
+- `CORS_ORIGINS`: `https://digital-evidence-frontend.onrender.com` (plus any explicitly trusted development origins only if needed).
+- `JWT_ALGORITHM`: `HS256` (only if not already set).
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: `30` (only if not already set).
+- `UPLOAD_DIRECTORY` and `REPORT_DIRECTORY`: paths on a persistent disk or durable object store. The currently configured backend uses Render's Free compute plan, which does not support persistent disks; files in its container filesystem are ephemeral. Do not rely on that filesystem for evidence or reports. Upgrade to a plan supporting persistent disks and attach one, or configure durable object storage, before depending on production uploads.
+
+`GOOGLE_CLIENT_ID`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_USE_TLS`, and `PUBLIC_APP_URL` are no longer used. Remove those variables from the backend service after the new backend code is deployed. Do not place secrets in frontend `VITE_` variables.
+
+## Database schema repair
+
+The existing PostgreSQL database must be retained. The migration `c8d2f4a6b901` is additive and idempotent: it adds missing password-auth user profile columns and indexes without deleting or replacing users. Back up the database first. The current Free compute plan does not support Render Shell, so a plan with Shell access (or an equivalent controlled migration runner) is required. After deploying the new backend, inspect the current revision and then upgrade from the backend service's working directory:
+
+```sh
+python -m alembic current
+python -m alembic upgrade head
 ```
 
-Authentication providers are optional but remain unavailable until configured:
+If `alembic current` reports a revision that is not in the expected migration chain, stop and investigate before upgrading. Do not run schema resets or delete/recreate the PostgreSQL service. `/health/ready` reports whether the database and required user schema are available after the migration.
 
-- Google Identity Services: set `GOOGLE_CLIENT_ID` on the backend Render service to the OAuth **Web application** client ID. This is the backend's expected ID-token audience and is returned by `/api/auth/options` for the frontend Google button; no separate frontend client-ID variable is needed. The ID is public and is not a client secret.
-- In Google Cloud Console, open **APIs & Services → Credentials**, edit that same OAuth web client, and add `https://digital-evidence-frontend.onrender.com` under **Authorized JavaScript origins**. The current frontend flow uses the Google Identity Services popup callback and posts its ID token to the existing backend endpoint, so it does not require an authorized redirect URI. Do not add a client secret to the frontend or repository.
-- After setting `GOOGLE_CLIENT_ID` or correcting `CORS_ORIGINS`, save the backend Render environment so the service restarts. Redeploy/rebuild the frontend when deploying frontend code changes; it reads the client ID at runtime from `/api/auth/options`.
-- The backend verifies the token signature, expiry, audience, and issuer before using its claims. Keep `CORS_ORIGINS` set to `https://digital-evidence-frontend.onrender.com` so the browser can reach the API.
-- In the Render frontend service, set the build environment variable `VITE_API_BASE_URL` to `https://digitalevidenceintegrity.onrender.com/api`. Do not set a second Google client ID on the frontend; `/api/auth/options` provides the same public ID the backend validates as its audience.
-- Password recovery and email verification: set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `SMTP_USE_TLS` to the transactional email service credentials.
-- Email OTP uses the same SMTP configuration and authenticates existing active users only. It does not create accounts. Set all SMTP values on the backend Render service; never add SMTP credentials to frontend variables.
+For local development, copy `backend/.env.example` to `backend/.env` and set local `DATABASE_URL` and `SECRET_KEY`; `.env` files must remain untracked.
 
-Unset providers are not simulated: Google sign-in stays unavailable, and email OTP/recovery/verification endpoints return a setup error. Store provider credentials only in Render environment settings. The browser receives only the public Google client ID and email-delivery-enabled status through `/api/auth/options`.
-
-Email OTP adds the `email_otp_challenges` table. Apply the Alembic migration before deploying code that uses OTP:
-
-```powershell
-alembic upgrade head
-```
-
-Keep the existing Render database and environment values. Deploy the backend migration first, then the backend application; redeploy the frontend to publish the Email OTP login interface.
-
-The backend also persists authentication rate-limit counters in PostgreSQL: password/Google sign-in is limited per client IP, and registration and recovery requests have per-IP limits. Ensure Render's trusted proxy configuration is restricted so client IP-based limits cannot be spoofed through untrusted forwarded headers.
-
-For local development, copy `backend/.env.example` to `backend/.env`, replace `SECRET_KEY` and the database URL with local values, and set provider variables only when using real provider accounts. `.env` files must remain untracked.
-
-After configuration, install dependencies and run the focused backend tests:
+Install dependencies and run the backend tests from `backend`:
 
 ```powershell
 python -m pip install -r requirements.txt

@@ -7,8 +7,6 @@ import { AuthProvider } from "@/context/AuthContext"
 import LoginPage from "@/pages/Login"
 import RegisterPage from "@/pages/Register"
 import ForgotPasswordPage from "@/pages/ForgotPassword"
-import ResetPasswordPage from "@/pages/ResetPassword"
-import VerifyEmailPage from "@/pages/VerifyEmail"
 import DashboardPage from "@/pages/Dashboard"
 import CasesPage from "@/pages/Cases"
 import CaseDetailPage from "@/pages/Cases/Detail"
@@ -32,8 +30,6 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppShell />}>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />

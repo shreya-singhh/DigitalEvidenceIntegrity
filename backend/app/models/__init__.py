@@ -1,7 +1,5 @@
 from .audit_log import AuditLog
-from .auth_challenge import AuthChallenge
 from .auth_rate_limit import AuthRateLimit
-from .email_otp_challenge import EmailOtpChallenge
 from .case import Case
 from .case_access import CaseAccess
 from .chain_of_custody import ChainOfCustody
@@ -23,7 +21,5 @@ __all__ = [
     "ChainOfCustody",
     "Report",
     "AuditLog",
-    "AuthChallenge",
     "AuthRateLimit",
-    "EmailOtpChallenge",
 ]

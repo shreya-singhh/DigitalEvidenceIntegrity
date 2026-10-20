@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CreatorFooter } from "@/components/layout/CreatorFooter"
 import { useAuth } from "@/context/AuthContext"
-import { authApi } from "@/lib/api"
 import { extractApiError } from "@/lib/utils"
 
 export default function RegisterPage() {
@@ -55,17 +54,7 @@ export default function RegisterPage() {
         password,
         terms_accepted: termsAccepted,
       })
-      try {
-        const options = await authApi.options()
-        if (options.data.email_delivery_enabled) {
-          await authApi.requestEmailVerification()
-          toast.success("Account created. Check your inbox to verify your email.")
-        } else {
-          toast.success("Account created. Email verification is not configured for this deployment.")
-        }
-      } catch (error) {
-        toast.error(`Account created, but email verification could not be sent: ${extractApiError(error)}`)
-      }
+      toast.success("Account created. You are signed in.")
       navigate("/dashboard")
     } catch (error) {
       toast.error(extractApiError(error))

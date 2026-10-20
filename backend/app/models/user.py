@@ -18,7 +18,6 @@ class User(Base):
     phone_number = Column(String(32), unique=True, nullable=True, index=True)
     phone_verified = Column(Boolean, default=False, nullable=False)
     email_verified = Column(Boolean, default=False, nullable=False)
-    google_subject = Column(String(255), unique=True, nullable=True, index=True)
     token_version = Column(Integer, default=0, nullable=False)
     security_alerts_enabled = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

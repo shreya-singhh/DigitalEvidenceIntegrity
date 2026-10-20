@@ -1,5 +1,4 @@
 import re
-import smtplib
 import traceback
 from pathlib import Path
 from typing import Any
@@ -15,9 +14,6 @@ def safe_exception_diagnostics(exc: BaseException) -> dict[str, Any]:
         "exception_type": type(exc).__name__,
         "exception_module": type(exc).__module__,
     }
-
-    if isinstance(exc, smtplib.SMTPResponseException):
-        diagnostics["smtp_code"] = exc.smtp_code
 
     if isinstance(exc, OSError) and isinstance(exc.errno, int):
         diagnostics["os_error_code"] = exc.errno
